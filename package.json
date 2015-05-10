@@ -1,0 +1,17 @@
+{
+  "name": "sumobotkit-builder",
+  "version": "1.0.0",
+  "description": "Parametric Sumo Bot Kit Builder Scripts",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Pawel Szymczykowski",
+  "license": "ISC",
+  "dependencies": {
+    "nodescad": "^0.3.0",
+    "tempfile": "^1.1.1",
+    "underscore": "^1.8.3"
+  }
+}
