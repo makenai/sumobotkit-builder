@@ -1,29 +1,16 @@
-var fs = require('fs'),
-    _ = require('underscore'),
-    tempfile = require('tempfile'),
-    nodeSCAD = require('nodescad');
+var _ = require('underscore'),
+    renderer = require('./lib/renderer');
 
-var openSCADPath = '/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD';
+function buildStlFiles() {
+  var partsList = [ 'wheel', 'top', 'shovel', 'bottom', 'side' ];
 
-nodeSCAD.render({
-  binaryPath: openSCADPath,
-  inputFile: __dirname + '/scad/sumobot.scad',
-  variables: {
-    'cat': 'dog'
-  }
-}, function (error, dataBuffer) {
-  if (error) { throw error; }
+  _.each(partsList, function(part) {
+    renderer.stlFile({}, part, 'build/' + part + '.stl');
+  });
+}
 
-  console.log(dataBuffer.toString())
-});
+function buildLaserFile() {
+  renderer.svgFile({}, 'laser_sheet', 'build/sumobot-laser.svg');
+}
 
-
-//
-//
-// var partsList = [ 'wheel', 'top', 'shovel', 'bottom', 'side' ];
-//
-// fs.readFile('./scad/sumobot.scad', 'utf-8', function (err, data) {
-//   if (err) { throw err; }
-//
-//   console.log( data );
-// });
+buildLaserFile();

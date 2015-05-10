@@ -7,7 +7,7 @@
 
  /* Build Flags - Variables to programatically select which part to output */
 
-  build_laser_sheet = 1;
+  build_laser_sheet = 0;
   build_wheel = 0;
   build_top = 0;
   build_shovel = 0;
@@ -20,10 +20,13 @@
   curved_shovel = 0;
 
   // For 3D printing, we can include a ball caster on the bottom
-  built_in_caster = 1;
+  built_in_caster = 0;
+
+  // For 3D printing, we can have a built in wheel hub
+  built_in_hub = 1;
 
   // For 3D printing, we can select a pinoccio mount for the top
-  pinoccio_mount = 0;
+  pinoccio_top = 0;
 
 /* Parameters */
 
@@ -82,6 +85,9 @@
   // How big are our wheels?
   wheel_radius = 30;
 
+  // Spacing between things on laser sheet
+  laser_spacing = 3;
+
   // Caster Settings
   Caster_WallThickness = 2;
   Caster_BallSize = 12.5;
@@ -106,18 +112,18 @@
   tab_spacing = kerf * 2;
 
   // We figure out the side based on a snug fit for the battery case
-  sled_height = ((material_thickness + tab_edge_distance) * 2 ) +
+  side_height = ((material_thickness + tab_edge_distance) * 2 ) +
   	servo_height + battery_case_height;
 
   // Length of the ramp (bottom of the right triangle) depends on the angle
-  ramp_length = cos( ramp_angle ) * sled_height;
+  ramp_length = cos( ramp_angle ) * side_height;
 
   // We want to place the tab the correct tab distance on the bottom, so we need
   // to cut into the distance taken up by the ramp.
   ramp_tab_distance = cos(ramp_angle)*( tab_edge_distance + material_thickness);
 
   // The length of the sled plus the length of the ramp
-  side_length = sled_length + ( cos( ramp_angle ) * (sled_height - tab_edge_distance) );
+  side_length = sled_length + ( cos( ramp_angle ) * (side_height - tab_edge_distance) );
 
 /* Utility Modules */
 
@@ -293,9 +299,9 @@ module side() {
 	difference() {
 
 		union() {
-			square([sled_length, sled_height]);
-			polygon([[0,0], [0,sled_height], [-ramp_length,0]] );
-			translate([-ramp_length/2,sled_height/2])
+			square([sled_length, side_height]);
+			polygon([[0,0], [0,side_height], [-ramp_length,0]] );
+			translate([-ramp_length/2,side_height/2])
 				rotate(ramp_angle)
 				translate([-tab_length/2,-0.1])
 				tab();
@@ -316,18 +322,18 @@ module side() {
 			tab_hole();
 
 		// Top left
-		translate([tab_edge_distance, sled_height - material_thickness - tab_edge_distance])
+		translate([tab_edge_distance, side_height - material_thickness - tab_edge_distance])
 			tab_hole();
 
 		// Top right
 		translate([sled_length - tab_length - tab_edge_distance,
-				sled_height - material_thickness - tab_edge_distance])
+        side_height - material_thickness - tab_edge_distance])
 			tab_hole();
 	}
 }
 
 // The bottom of the sumobot [: ]
-module bottom(built_in_caster=1) {
+module bottom(built_in_caster=built_in_caster) {
 	bottom_offset = (ramp_length + sled_length) - side_length;
 	translate([bottom_offset, 0])
 	linear_extrude(height=material_thickness)
@@ -419,7 +425,7 @@ module shovel(curved_shovel=curved_shovel) {
 }
 
 // Sumobot wheel ( )
-module wheel(built_in_hub=1) {
+module wheel(built_in_hub=built_in_hub) {
 	layer_height = material_thickness/3;
 	difference() {
 		union() {
@@ -448,29 +454,31 @@ module wheel(built_in_hub=1) {
 
 // When we want to make a file for laser cutting, we can use this to keep
 // all components on one sheet.
-module laser_sheet(spacing=2) {
+module laser_sheet() {
+
+  tab_height = material_thickness;
 
 	// We want high resolution circles.
-	$fn = 50;
+	// $fn = 50;
 
 	// Right Side
-	translate([sled_length+spacing, sled_height+spacing]) mirror([1,0,0])
+	translate([sled_length+laser_spacing, side_height+laser_spacing]) mirror([1,0,0])
 		side();
-	translate([ramp_length+spacing,-shovel_height - spacing])
+	translate([ramp_length+laser_spacing, -shovel_height - laser_spacing])
 		side();
-	translate([spacing-ramp_length,sled_height-shovel_height])
+	translate([laser_spacing-ramp_length,side_height-shovel_height])
 		shovel(curved_shovel=0);
-	translate([wheel_radius+spacing,-shovel_height-wheel_radius-spacing*2])
+	translate([wheel_radius+laser_spacing,-shovel_height-wheel_radius-(laser_spacing*2)])
 		wheel(built_in_hub=0);
 
 
 	// Left Side
 	translate([0,-wheel_radius/2]) {
-		translate([-wheel_radius,sled_width+wheel_radius+material_thickness])
+		translate([-wheel_radius,sled_width+wheel_radius+tab_height+laser_spacing])
 			wheel(built_in_hub=0);
 		translate([-sled_length - ramp_length, 0])
 			top();
-		translate([-sled_length - ramp_length, -sled_width - material_thickness * 2 - spacing ])
+		translate([-sled_length - ramp_length, -sled_width - (tab_height * 2) - laser_spacing ])
 			bottom(built_in_caster=0);
 	}
 
@@ -480,7 +488,8 @@ module laser_sheet(spacing=2) {
 
 if ( build_laser_sheet ) {
   projection(cut=true)
-  	laser_sheet(2);
+    translate([ sled_length + ramp_length, -side_height - shovel_height - (laser_spacing * 2), 0])
+      laser_sheet();
 }
 
 if ( build_wheel ) {
